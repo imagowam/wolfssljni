@@ -553,7 +553,7 @@ JNIEXPORT void JNICALL Java_com_wolfssl_WolfSSL_debuggingOFF
     (void)jenv;
     (void)jcl;
 
-    return wolfSSL_Debugging_OFF();
+    wolfSSL_Debugging_OFF();
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_setLoggingCb
