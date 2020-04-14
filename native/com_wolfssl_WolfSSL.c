@@ -672,14 +672,25 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_memsaveSessionCache
 #ifdef PERSIST_SESSION_CACHE
     int ret;
     int cacheSz;
-    char memBuf[sz];
+    char* memBuf = NULL;
 
     (void)jcl;
 
-    if (!jenv || !mem || (sz <= 0))
+    if (jenv == NULL || mem == NULL || (sz <= 0)) {
         return BAD_FUNC_ARG;
+    }
+
+    memBuf = (char*)XMALLOC(sz, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    if (memBuf == NULL) {
+        return MEMORY_E;
+    }
+    XMEMSET(memBuf, 0, sz);
 
     ret = wolfSSL_memsave_session_cache(memBuf, sz);
+    if (ret != WOLFSSL_SUCCESS) {
+        XFREE(memBuf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+        return SSL_FAILURE;
+    }
 
     /* how much data do we need to write? */
     cacheSz = wolfSSL_get_session_cache_memsize();
@@ -690,9 +701,11 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_memsaveSessionCache
         if ((*jenv)->ExceptionOccurred(jenv)) {
             (*jenv)->ExceptionDescribe(jenv);
             (*jenv)->ExceptionClear(jenv);
+            XFREE(memBuf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             return SSL_FAILURE;
         }
     }
+    XFREE(memBuf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;
 #else
@@ -708,23 +721,22 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_memrestoreSessionCache
   (JNIEnv* jenv, jclass jcl, jbyteArray mem, jint sz)
 {
 #ifdef PERSIST_SESSION_CACHE
-    int ret;
-    char memBuf[sz];
-
+    int ret = SSL_FAILURE;
+    byte* memBuf = NULL;
     (void)jcl;
 
-    if (!jenv || !mem || (sz <= 0))
+    if (jenv == NULL || mem == NULL || (sz <= 0)) {
         return BAD_FUNC_ARG;
-
-    (*jenv)->GetByteArrayRegion(jenv, mem, 0, sz, (jbyte*)memBuf);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
     }
 
-    ret = wolfSSL_memrestore_session_cache(memBuf, sz);
-    return ret;
+    memBuf = (byte*)(*jenv)->GetByteArrayElements(jenv, mem, NULL);
+    if (memBuf != NULL) {
+        ret = wolfSSL_memrestore_session_cache(memBuf, sz);
+    }
+
+    (*jenv)->ReleaseByteArrayElements(jenv, mem, (jbyte*)memBuf, JNI_ABORT);
+
+    return (jint)ret;
 #else
     (void)jenv;
     (void)jcl;
@@ -749,36 +761,34 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionCacheMemsize
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getPkcs8TraditionalOffset
   (JNIEnv* jenv, jclass jcl, jbyteArray in, jlong idx, jlong sz)
 {
-    int ret;
+    int ret = -1;
     word32 inOutIdx;
-    unsigned char inBuf[sz];
-
+    unsigned char* inBuf = NULL;
     (void)jcl;
 
-    if (!jenv || !in || (sz <= 0))
+    if (jenv == NULL || in == NULL || (sz <= 0)) {
         return BAD_FUNC_ARG;
-
-    (*jenv)->GetByteArrayRegion(jenv, in, 0, sz, (jbyte*)inBuf);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
     }
 
-    inOutIdx = (word32)idx;
-    ret = wc_GetPkcs8TraditionalOffset(inBuf, &inOutIdx, (word32)sz);
+    inBuf = (unsigned char*)(*jenv)->GetByteArrayElements(jenv, in, NULL);
+    if (inBuf != NULL) {
+        inOutIdx = (word32)idx;
+        ret = wc_GetPkcs8TraditionalOffset(inBuf, &inOutIdx, (word32)sz);
+    }
+
+    (*jenv)->ReleaseByteArrayElements(jenv, in, (jbyte*)inBuf, JNI_ABORT);
 
     if (ret < 0)
         return ret;
 
-    return (int)inOutIdx;
+    return (jint)inOutIdx;
 }
 
 JNIEXPORT jbyteArray JNICALL Java_com_wolfssl_WolfSSL_x509_1getDer
   (JNIEnv* jenv, jclass jcl, jlong x509)
 {
 #if defined(KEEP_PEER_CERT) || defined(SESSION_CERTS)
-    int* outSz = NULL;
+    int outSz = 0;
     const unsigned char* derCert;
     jbyteArray out = NULL;
 
@@ -787,11 +797,11 @@ JNIEXPORT jbyteArray JNICALL Java_com_wolfssl_WolfSSL_x509_1getDer
     if (!jenv || !x509)
         return NULL;
 
-    derCert = wolfSSL_X509_get_der((WOLFSSL_X509*)(intptr_t)x509, outSz);
+    derCert = wolfSSL_X509_get_der((WOLFSSL_X509*)(intptr_t)x509, &outSz);
 
-    if (*outSz >= 0) {
+    if (outSz >= 0) {
 
-        (*jenv)->SetByteArrayRegion(jenv, out, 0, *outSz, (jbyte*)derCert);
+        (*jenv)->SetByteArrayRegion(jenv, out, 0, outSz, (jbyte*)derCert);
         if ((*jenv)->ExceptionOccurred(jenv)) {
             (*jenv)->ExceptionDescribe(jenv);
             (*jenv)->ExceptionClear(jenv);

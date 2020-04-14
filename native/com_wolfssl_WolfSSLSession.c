@@ -1227,17 +1227,17 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_setTmpDH
   (JNIEnv* jenv, jobject jcl, jlong ssl, jbyteArray p, jint pSz, jbyteArray g,
    jint gSz)
 {
-    unsigned char pBuf[pSz];
-    unsigned char gBuf[gSz];
+    int ret = SSL_FAILURE;
+    byte* pBuf = NULL;
+    byte* gBuf = NULL;
     jclass excClass;
-
     (void)jcl;
 
-    if (!jenv || !p || !g) {
+    if (jenv == NULL || p == NULL || g == NULL) {
         return BAD_FUNC_ARG;
     }
 
-    if (!ssl) {
+    if (ssl <= 0) {
         excClass = (*jenv)->FindClass(jenv, "com/wolfssl/WolfSSLException");
         if ((*jenv)->ExceptionOccurred(jenv)) {
             (*jenv)->ExceptionDescribe(jenv);
@@ -1250,22 +1250,17 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_setTmpDH
         return SSL_FAILURE;
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, p, 0, pSz, (jbyte*)pBuf);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
+    pBuf = (byte*)(*jenv)->GetByteArrayElements(jenv, p, NULL);
+    gBuf = (byte*)(*jenv)->GetByteArrayElements(jenv, g, NULL);
+
+    if (pBuf != NULL && gBuf != NULL) {
+        ret = wolfSSL_SetTmpDH((WOLFSSL*)(uintptr_t)ssl, pBuf, pSz, gBuf, gSz);
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, g, 0, gSz, (jbyte*)gBuf);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
-    }
+    (*jenv)->ReleaseByteArrayElements(jenv, p, (jbyte*)pBuf, JNI_ABORT);
+    (*jenv)->ReleaseByteArrayElements(jenv, g, (jbyte*)gBuf, JNI_ABORT);
 
-    return wolfSSL_SetTmpDH((WOLFSSL*)(uintptr_t)ssl, pBuf, pSz, gBuf, gSz);
-
+    return (jint)ret;
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_setTmpDHFile
@@ -1299,19 +1294,21 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_setTmpDHFile
 
     (*jenv)->ReleaseStringUTFChars(jenv, file, fname);
 
-    return ret;
+    return (jint)ret;
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_useCertificateBuffer
   (JNIEnv* jenv, jobject jcl, jlong ssl, jbyteArray in, jlong sz, jint format)
 {
-    unsigned char buff[sz];
+    int ret = SSL_FAILURE;
+    byte* buff = NULL;
     jclass excClass;
 
     (void)jcl;
 
-    if (!jenv || !in)
+    if (jenv == NULL || in == NULL) {
         return BAD_FUNC_ARG;
+    }
 
     if (!ssl) {
         excClass = (*jenv)->FindClass(jenv, "com/wolfssl/WolfSSLException");
@@ -1326,29 +1323,31 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_useCertificateBuffer
         return SSL_FAILURE;
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, in, 0, sz, (jbyte*)buff);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
+    buff = (byte*)(*jenv)->GetByteArrayElements(jenv, in, NULL);
+
+    if (buff != NULL) {
+        ret = wolfSSL_use_certificate_buffer((WOLFSSL*)(uintptr_t)ssl, buff,
+                                             sz, format);
     }
 
-    return wolfSSL_use_certificate_buffer((WOLFSSL*)(uintptr_t)ssl, buff, sz,
-                                          format);
+    (*jenv)->ReleaseByteArrayElements(jenv, in, (jbyte*)buff, JNI_ABORT);
+
+    return (jint)ret;
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_usePrivateKeyBuffer
   (JNIEnv* jenv, jobject jcl, jlong ssl, jbyteArray in, jlong sz, jint format)
 {
-    unsigned char buff[sz];
+    int ret = SSL_FAILURE;
+    byte* buff = NULL;
     jclass excClass;
-
     (void)jcl;
 
-    if (!jenv || !in)
+    if (jenv == NULL || in == NULL) {
         return BAD_FUNC_ARG;
+    }
 
-    if (!ssl) {
+    if (ssl <= 0) {
         excClass = (*jenv)->FindClass(jenv, "com/wolfssl/WolfSSLException");
         if ((*jenv)->ExceptionOccurred(jenv)) {
             (*jenv)->ExceptionDescribe(jenv);
@@ -1361,27 +1360,29 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_usePrivateKeyBuffer
         return SSL_FAILURE;
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, in, 0, sz, (jbyte*)buff);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
+    buff = (byte*)(*jenv)->GetByteArrayElements(jenv, in, NULL);
+
+    if (buff != NULL) {
+        ret = wolfSSL_use_PrivateKey_buffer((WOLFSSL*)(uintptr_t)ssl, buff,
+                                            sz, format);
     }
 
-    return wolfSSL_use_PrivateKey_buffer((WOLFSSL*)(uintptr_t)ssl, buff, sz,
-                                         format);
+    (*jenv)->ReleaseByteArrayElements(jenv, in, (jbyte*)buff, JNI_ABORT);
+
+    return (jint)ret;
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_useCertificateChainBuffer
   (JNIEnv* jenv, jobject jcl, jlong ssl, jbyteArray in, jlong sz)
 {
-    unsigned char buff[sz];
+    int ret = SSL_FAILURE;
+    byte* buff = NULL;
     jclass excClass;
-
     (void)jcl;
 
-    if (!jenv || !in)
+    if (jenv == NULL || in == NULL) {
         return BAD_FUNC_ARG;
+    }
 
     if (!ssl) {
         excClass = (*jenv)->FindClass(jenv, "com/wolfssl/WolfSSLException");
@@ -1396,15 +1397,16 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_useCertificateChainBuffer
         return SSL_FAILURE;
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, in, 0, sz, (jbyte*)buff);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return SSL_FAILURE;
+    buff = (byte*)(*jenv)->GetByteArrayElements(jenv, in, NULL);
+
+    if (buff != NULL) {
+        ret = wolfSSL_use_certificate_chain_buffer((WOLFSSL*)(uintptr_t)ssl,
+                                                   buff, sz);
     }
 
-    return wolfSSL_use_certificate_chain_buffer((WOLFSSL*)(uintptr_t)ssl, buff,
-                                                sz);
+    (*jenv)->ReleaseByteArrayElements(jenv, in, (jbyte*)buff, JNI_ABORT);
+
+    return (jint)ret;
 }
 
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLSession_setGroupMessages

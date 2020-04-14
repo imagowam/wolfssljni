@@ -445,12 +445,12 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLContext_memsaveCertCache
 #ifdef PERSIST_CERT_CACHE
     int ret;
     int usedTmp;
-    char memBuf[sz];
-
+    byte* memBuf = NULL;
     (void)jcl;
 
-    if (!jenv || !ctx || !mem || (sz <= 0))
+    if (jenv == NULL || ctx <= 0 || mem == NULL || (sz <= 0)) {
         return BAD_FUNC_ARG;
+    }
 
     /* find exception class */
     jclass excClass = (*jenv)->FindClass(jenv,
@@ -461,33 +461,47 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLContext_memsaveCertCache
         return SSL_FAILURE;
     }
 
-    ret = wolfSSL_CTX_memsave_cert_cache((WOLFSSL_CTX*)(uintptr_t)ctx, memBuf,
-            sz, &usedTmp);
-
-    /* set used value for return */
-    (*jenv)->SetIntArrayRegion(jenv, used, 0, 1, &usedTmp);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-
-        (*jenv)->ThrowNew(jenv, excClass,
-                "Failed to set array region in native memsaveCertCache");
+    memBuf = (byte*)(*jenv)->GetByteArrayElements(jenv, mem, NULL);
+    if (memBuf == NULL) {
         return SSL_FAILURE;
     }
 
-    /* set jbyteArray for return */
-    if (usedTmp >= 0) {
-        (*jenv)->SetByteArrayRegion(jenv, mem, 0, usedTmp, (jbyte*)memBuf);
+    ret = wolfSSL_CTX_memsave_cert_cache((WOLFSSL_CTX*)(uintptr_t)ctx, memBuf,
+            sz, &usedTmp);
+
+    if (ret == SSL_SUCCESS) {
+        /* set used value for return */
+        (*jenv)->SetIntArrayRegion(jenv, used, 0, 1, &usedTmp);
         if ((*jenv)->ExceptionOccurred(jenv)) {
             (*jenv)->ExceptionDescribe(jenv);
             (*jenv)->ExceptionClear(jenv);
+
             (*jenv)->ThrowNew(jenv, excClass,
-                    "Failed to set byte region in native memsaveCertCache");
+                    "Failed to set array region in native memsaveCertCache");
+            (*jenv)->ReleaseByteArrayElements(jenv, mem, (jbyte*)memBuf,
+                                              JNI_ABORT);
             return SSL_FAILURE;
+        }
+
+        /* set jbyteArray for return */
+        if (usedTmp >= 0) {
+            (*jenv)->SetByteArrayRegion(jenv, mem, 0, usedTmp, (jbyte*)memBuf);
+            if ((*jenv)->ExceptionOccurred(jenv)) {
+                (*jenv)->ExceptionDescribe(jenv);
+                (*jenv)->ExceptionClear(jenv);
+
+                (*jenv)->ThrowNew(jenv, excClass,
+                        "Failed to set byte region in native memsaveCertCache");
+                (*jenv)->ReleaseByteArrayElements(jenv, mem, (jbyte*)memBuf,
+                                                  JNI_ABORT);
+                return SSL_FAILURE;
+            }
         }
     }
 
-    return ret;
+    (*jenv)->ReleaseByteArrayElements(jenv, mem, (jbyte*)memBuf, JNI_ABORT);
+
+    return (jint)ret;
 #else
     (void)jenv;
     (void)jcl;

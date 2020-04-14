@@ -599,42 +599,34 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLCertificate_X509_1verify
 {
     WOLFSSL_EVP_PKEY* pkey;
     int sz = (int)pubKeySz;
-    int ret;
-    unsigned char buff[sz];
-    unsigned char* ptr = buff;
+    int ret = WOLFSSL_FAILURE;
+    byte* buff = NULL;
+    unsigned char* ptr = NULL;
 
     (void)jcl;
 
-    if (!jenv || !pubKey || (sz < 0))
+    if (jenv == NULL || pubKey == NULL || (sz < 0)) {
         return BAD_FUNC_ARG;
-
-    /* find exception class */
-    jclass excClass = (*jenv)->FindClass(jenv,
-            "com/wolfssl/WolfSSLJNIException");
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
-        return WOLFSSL_FAILURE;
     }
 
-    (*jenv)->GetByteArrayRegion(jenv, pubKey, 0, sz, (jbyte*)buff);
-    if ((*jenv)->ExceptionOccurred(jenv)) {
-        (*jenv)->ExceptionDescribe(jenv);
-        (*jenv)->ExceptionClear(jenv);
+    buff = (byte*)(*jenv)->GetByteArrayElements(jenv, pubKey, NULL);
 
-        (*jenv)->ThrowNew(jenv, excClass,
-                "Failed to get byte region in native wolfSSL_X509_verify");
-        return WOLFSSL_FAILURE;
+    if (buff != NULL) {
+        ptr = buff;
+        pkey = wolfSSL_d2i_PUBKEY(NULL, &ptr, sz);
+        if (pkey == NULL) {
+            (*jenv)->ReleaseByteArrayElements(jenv, pubKey, (jbyte*)buff,
+                                              JNI_ABORT);
+            return WOLFSSL_FAILURE;
+        }
+
+        ret = wolfSSL_X509_verify((WOLFSSL_X509*)(uintptr_t)x509, pkey);
+        wolfSSL_EVP_PKEY_free(pkey);
     }
 
-    pkey = wolfSSL_d2i_PUBKEY(NULL, &ptr, sz);
-    if (pkey == NULL) {
-        return WOLFSSL_FAILURE;
-    }
+    (*jenv)->ReleaseByteArrayElements(jenv, pubKey, (jbyte*)buff, JNI_ABORT);
 
-    ret = wolfSSL_X509_verify((WOLFSSL_X509*)(uintptr_t)x509, pkey);
-    wolfSSL_EVP_PKEY_free(pkey);
-    return ret;
+    return (jint)ret;
 
 }
 
