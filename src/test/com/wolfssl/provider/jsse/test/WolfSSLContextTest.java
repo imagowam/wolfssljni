@@ -64,7 +64,8 @@ public class WolfSSLContextTest {
         "TLSV1",
         "TLSV1.1",
         "TLSV1.2",
-        "TLS"
+        "TLS",
+        "SSL"
     };
 
     private static ArrayList<String> enabledProtocols =
