@@ -200,14 +200,6 @@ public class WolfSSLServerSocketFactoryTest {
             SSLServerSocket s = null;
 
             try {
-                addr = InetAddress.getByName("www.example.com");
-            } catch (UnknownHostException e) {
-                /* skip test if no Internet connection available */
-                System.out.println("\t\t\t... skipped");
-                return;
-            }
-
-            try {
 
                 /* no arguments */
                 s = (SSLServerSocket)sf.createServerSocket();
