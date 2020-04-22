@@ -613,7 +613,7 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLCertificate_X509_1verify
 
     if (buff != NULL) {
         ptr = buff;
-        pkey = wolfSSL_d2i_PUBKEY(NULL, &ptr, sz);
+        pkey = wolfSSL_d2i_PUBKEY(NULL, (const unsigned char**)&ptr, sz);
         if (pkey == NULL) {
             (*jenv)->ReleaseByteArrayElements(jenv, pubKey, (jbyte*)buff,
                                               JNI_ABORT);
