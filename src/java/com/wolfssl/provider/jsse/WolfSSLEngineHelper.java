@@ -480,7 +480,8 @@ public class WolfSSLEngineHelper {
                         "Native wolfSSL peer verification passed");
             } else {
                 WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                        "WARNING: Native wolfSSL peer verification failed!");
+                        "Native wolfSSL verification failed, using " +
+                        "X509TrustManager for verification");
             }
 
             try {
