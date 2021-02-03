@@ -634,6 +634,12 @@ public class WolfSSLSocket extends SSLSocket {
             WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
                              "thread got ioLock (handshake)");
 
+            /* throw SocketException if underlying Socket has been closed */
+            if ((this.socket != null && this.socket.isClosed()) ||
+                (this.socket == null && super.isClosed())) {
+                throw new SocketException("Underlying Socket has been closed");
+            }
+
             /* will throw SSLHandshakeException if session creation is
                not allowed */
             EngineHelper.initHandshake();
