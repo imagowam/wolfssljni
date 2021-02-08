@@ -793,5 +793,138 @@ public class WolfSSLServerSocketTest {
 
         System.out.println("\t... passed");
     }
+
+    @Test
+    public void testGetInetAddress() throws Exception {
+
+        System.out.print("\tgetInetAddress()");
+
+        /* create new CTX */
+        this.ctx = tf.createSSLContext("TLS", "wolfJSSE");
+
+        /* create SSLServerSocket first to get ephemeral port */
+        SSLServerSocket ss = (SSLServerSocket)ctx.getServerSocketFactory()
+            .createServerSocket(0);
+
+        SSLSocket cs = (SSLSocket)ctx.getSocketFactory().createSocket();
+        cs.connect(new InetSocketAddress(ss.getLocalPort()));
+
+        final SSLSocket server = (SSLSocket)ss.accept();
+
+        /* getInetAddress() should return non-null after accept() */
+        assertNotNull(server.getInetAddress());
+
+        /* getInetAddress().getLocalHost() should return non-null */
+        assertNotNull(server.getInetAddress().getLocalHost());
+
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        Future<Void> serverFuture = es.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                try {
+                    /* getInetAddress() should return non-null after accept() */
+                    assertNotNull(server.getInetAddress());
+
+                    /* getInetAddress().getLocalHost() should return non-null */
+                    assertNotNull(server.getInetAddress().getLocalHost());
+
+                    server.startHandshake();
+
+                    /* getInetAddress() should return non-null after
+                       startHandshake() */
+                    assertNotNull(server.getInetAddress());
+
+                    /* getInetAddress().getLocalHost() should return non-null */
+                    assertNotNull(server.getInetAddress().getLocalHost());
+                } catch (SSLHandshakeException e) {
+                    System.out.println("\t\t... failed");
+                    fail();
+                }
+                return null;
+            }
+        });
+
+        try {
+            cs.startHandshake();
+        } catch (SSLHandshakeException e) {
+            System.out.println("\t\t... failed");
+            fail();
+        }
+
+        es.shutdown();
+        serverFuture.get();
+        cs.close();
+        server.close();
+        ss.close();
+
+        System.out.println("\t\t... passed");
+    }
+
+    @Test
+    public void testGetLocalAddress() throws Exception {
+
+        System.out.print("\tgetLocalAddress()");
+
+        /* create new CTX */
+        this.ctx = tf.createSSLContext("TLS", "wolfJSSE");
+
+        /* create SSLServerSocket first to get ephemeral port */
+        SSLServerSocket ss = (SSLServerSocket)ctx.getServerSocketFactory()
+            .createServerSocket(0);
+
+        SSLSocket cs = (SSLSocket)ctx.getSocketFactory().createSocket();
+        cs.connect(new InetSocketAddress(ss.getLocalPort()));
+
+        final SSLSocket server = (SSLSocket)ss.accept();
+
+        /* getInetAddress() should return non-null after accept() */
+        assertNotNull(server.getLocalAddress());
+
+        /* getInetAddress().getLocalHost() should return non-null */
+        assertNotNull(server.getLocalAddress().getLocalHost());
+
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        Future<Void> serverFuture = es.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                try {
+                    /* getInetAddress() should return non-null after accept() */
+                    assertNotNull(server.getInetAddress());
+
+                    /* getInetAddress().getLocalHost() should return non-null */
+                    assertNotNull(server.getLocalAddress().getLocalHost());
+
+                    server.startHandshake();
+
+                    /* getInetAddress() should return non-null after
+                       startHandshake() */
+                    assertNotNull(server.getLocalAddress());
+
+                    /* getInetAddress().getLocalHost() should return non-null */
+                    assertNotNull(server.getLocalAddress().getLocalHost());
+                } catch (SSLHandshakeException e) {
+                    System.out.println("\t\t... failed");
+                    fail();
+                }
+                return null;
+            }
+        });
+
+        try {
+            cs.startHandshake();
+        } catch (SSLHandshakeException e) {
+            System.out.println("\t\t... failed");
+            fail();
+        }
+
+        es.shutdown();
+        serverFuture.get();
+        cs.close();
+        server.close();
+        ss.close();
+
+        System.out.println("\t\t... passed");
+    }
+
 }
 
