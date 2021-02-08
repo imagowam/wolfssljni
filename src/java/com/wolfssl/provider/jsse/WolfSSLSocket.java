@@ -278,6 +278,18 @@ public class WolfSSLSocket extends SSLSocket {
         }
     }
 
+    /**
+     * Get the address of the remote peer.
+     */
+    @Override
+    public final InetAddress getInetAddress() {
+        if (this.socket != null) {
+            return this.socket.getInetAddress();
+        } else {
+            return this.getInetAddress();
+        }
+    }
+
     public WolfSSLSocket(com.wolfssl.WolfSSLContext context,
             WolfSSLAuthStore authStore, WolfSSLParameters params,
             boolean clientMode, Socket s, boolean autoClose)
