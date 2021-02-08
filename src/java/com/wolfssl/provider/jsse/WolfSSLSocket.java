@@ -290,6 +290,18 @@ public class WolfSSLSocket extends SSLSocket {
         }
     }
 
+    /**
+     * Get the local address the socket is bound to.
+     */
+    @Override
+    public final InetAddress getLocalAddress() {
+        if (this.socket != null) {
+            return this.socket.getLocalAddress();
+        } else {
+            return this.getLocalAddress();
+        }
+    }
+
     public WolfSSLSocket(com.wolfssl.WolfSSLContext context,
             WolfSSLAuthStore authStore, WolfSSLParameters params,
             boolean clientMode, Socket s, boolean autoClose)
