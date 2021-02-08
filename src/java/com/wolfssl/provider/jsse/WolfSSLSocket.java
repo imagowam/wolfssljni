@@ -314,6 +314,18 @@ public class WolfSSLSocket extends SSLSocket {
         }
     }
 
+    /**
+     * Get local port number used by this socket.
+     */
+    @Override
+    public final int getLocalPort() {
+        if (this.socket != null) {
+            return this.socket.getLocalPort();
+        } else {
+            return this.getLocalPort();
+        }
+    }
+
     public WolfSSLSocket(com.wolfssl.WolfSSLContext context,
             WolfSSLAuthStore authStore, WolfSSLParameters params,
             boolean clientMode, Socket s, boolean autoClose)
