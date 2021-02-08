@@ -812,9 +812,13 @@ public class WolfSSLServerSocketTest {
         final SSLSocket server = (SSLSocket)ss.accept();
 
         /* test getters, should return non-null after accept() */
+        /* default uninitialized (incorrect) value is null */
         assertNotNull(server.getInetAddress());
         assertNotNull(server.getInetAddress().getLocalHost());
-        assertNotNull(server.getPort());
+        /* default uninitialized (incorrect) value is 0 */
+        assertNotSame(server.getPort(), 0);
+        /* default uninitialized (incorrect) value is -1 */
+        assertNotSame(server.getLocalPort(), -1);
 
         ExecutorService es = Executors.newSingleThreadExecutor();
         Future<Void> serverFuture = es.submit(new Callable<Void>() {
@@ -823,17 +827,25 @@ public class WolfSSLServerSocketTest {
                 try {
                     /* test getters before startHandshake, should return
                        non-null after accept() */
+                    /* default uninitialized (incorrect) value is null */
                     assertNotNull(server.getInetAddress());
                     assertNotNull(server.getInetAddress().getLocalHost());
-                    assertNotNull(server.getPort());
+                    /* default uninitialized (incorrect) value is 0 */
+                    assertNotSame(server.getPort(), 0);
+                    /* default uninitialized (incorrect) value is -1 */
+                    assertNotSame(server.getLocalPort(), -1);
 
                     server.startHandshake();
 
                     /* test getters after startHandshake, should return
                        non-null after accept() */
+                    /* default uninitialized (incorrect) value is null */
                     assertNotNull(server.getInetAddress());
                     assertNotNull(server.getInetAddress().getLocalHost());
-                    assertNotNull(server.getPort());
+                    /* default uninitialized (incorrect) value is 0 */
+                    assertNotSame(server.getPort(), 0);
+                    /* default uninitialized (incorrect) value is -1 */
+                    assertNotSame(server.getLocalPort(), -1);
 
                 } catch (SSLHandshakeException e) {
                     System.out.println("\t\t\t... failed");
