@@ -348,12 +348,16 @@ public class WolfSSLEngineHelper {
         if (tm instanceof com.wolfssl.provider.jsse.WolfSSLTrustX509) {
             /* use internal peer verification logic */
             this.ssl.setVerify(mask, null);
+            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                "Using wolfSSL internal peer verification logic");
 
         } else {
             /* not our own TrustManager, set up callback so JSSE can use
              * TrustManager.checkClientTrusted/checkServerTrusted() */
             this.ssl.setVerify(WolfSSL.SSL_VERIFY_PEER,
                                new WolfSSLInternalVerifyCb());
+            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                "Using WolfSSLInternalVerifyCb() for peer verification");
         }
     }
 
@@ -590,12 +594,18 @@ public class WolfSSLEngineHelper {
             X509Certificate[] x509certs = null;
             String authType = null;
 
+            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                "Entered wolfJSSE Java WolfSSLInternalVerifyCb");
+
             if (preverify_ok == 1) {
                 WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
                         "Native wolfSSL peer verification passed");
             } else {
                 WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
                         "WARNING: Native wolfSSL peer verification failed!");
+                WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                        "Falling back to X509TrustManager for verification: " +
+                        tm);
             }
 
             try {
@@ -604,9 +614,16 @@ public class WolfSSLEngineHelper {
                     new WolfSSLX509StoreCtx(x509StorePtr);
                 certs = store.getCerts();
 
+                WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                    "Got WolfSSLCertificate[] from x509StorePtr");
+
             } catch (WolfSSLException e) {
                 /* failed to get certs from native, give app null array */
                 certs = null;
+
+                WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                    "Failed to get WolfSSLCertificate[] from x509StorePtr, " +
+                    "passing X509TrustManager null array");
             }
 
             if (certs != null && certs.length > 0) {
@@ -632,6 +649,9 @@ public class WolfSSLEngineHelper {
                 } else if (sigType.contains("ED25519")) {
                     authType = "ED25519";
                 }
+
+                WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                    "authType = " + authType);
             }
 
 
@@ -639,16 +659,24 @@ public class WolfSSLEngineHelper {
                 /* poll TrustManager for cert verification, should throw
                  * CertificateException if verification fails */
                 if (clientMode) {
+                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                        "calling tm.checkServerTrusted()");
                     tm.checkServerTrusted(x509certs, authType);
                 } else {
+                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                        "calling tm.checkClientTrusted()");
                     tm.checkClientTrusted(x509certs, authType);
                 }
             } catch (Exception e) {
                 /* TrustManager rejected certificate, not valid */
+                WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                    "X509TrustManager rejected certificate, not valid");
                 return 0;
             }
 
             /* continue handshake, verification succeeded */
+            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                "X509TrustManager verified certificate, continuing handshake");
             return 1;
         }
     }
