@@ -129,6 +129,10 @@ public final class WolfSSLProvider extends Provider {
                 "com.wolfssl.provider.jsse.WolfSSLTrustManager");
         put("TrustManagerFactory.SunX509",
                 "com.wolfssl.provider.jsse.WolfSSLTrustManager");
+
+        /* Key Stores */
+        put("KeyStore.PKCS12",
+                "com.wolfssl.provider.jsse.WolfSSLPKCS12KeyStore");
     }
 }
 
