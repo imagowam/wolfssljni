@@ -48,15 +48,15 @@ import javax.net.ssl.X509KeyManager;
  */
 @SuppressWarnings("deprecation")
 public class WolfSSLImplementSSLSession implements SSLSession {
-    private WolfSSLSession ssl;
+    private WolfSSLSession ssl = null;
     private final WolfSSLAuthStore authStore;
     private WolfSSLSessionContext ctx = null;
-    private boolean valid;
+    private boolean valid = false;
     private final HashMap<String, Object> binding;
     private final int port;
     private final String host;
-    Date creation;
-    Date accessed; /* when new connection was made using session */
+    Date creation = null;
+    Date accessed = null; /* when new connection was made using session */
     byte[] pseudoSessionID = null; /* used with TLS 1.3*/
     private int side = 0;
 
@@ -66,6 +66,9 @@ public class WolfSSLImplementSSLSession implements SSLSession {
     private long sesPtr = 0;
     private String nullCipher = "SSL_NULL_WITH_NULL_NULL";
     private String nullProtocol = "NONE";
+
+    /* Lock around WolfSSLSession */
+    private final Object sslLock = new Object();
 
     /**
      * Create new WolfSSLImplementSSLSession
@@ -131,21 +134,24 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      *         IllegalStateException or WolfSSLJNIException are thrown
      */
     public synchronized byte[] getId() {
-        if (ssl == null) {
-            return new byte[0];
-        }
-        try {
-            /* use pseudo session ID if session tickets are being used */
-            if (this.ssl.getVersion().equals("TLSv1.3") ||
-                this.ssl.sessionTicketsEnabled()) {
-                 return this.pseudoSessionID;
+
+        synchronized (sslLock) {
+            if (ssl == null) {
+                return new byte[0];
             }
-            else {
-                return this.ssl.getSessionID();
+            try {
+                /* use pseudo session ID if session tickets are being used */
+                if (this.ssl.getVersion().equals("TLSv1.3") ||
+                    this.ssl.sessionTicketsEnabled()) {
+                     return this.pseudoSessionID;
+                }
+                else {
+                    return this.ssl.getSessionID();
+                }
+            } catch (IllegalStateException | WolfSSLJNIException e) {
+                e.printStackTrace();
+                return null;
             }
-        } catch (IllegalStateException | WolfSSLJNIException e) {
-            e.printStackTrace();
-            return null;
         }
     }
 
@@ -206,7 +212,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      * session is then valid and can be joined or resumed
      * @param in true/false valid boolean
      */
-    protected void setValid(boolean in) {
+    protected synchronized void setValid(boolean in) {
         this.valid = in;
     }
 
@@ -218,7 +224,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      *
      * @throws IllegalArgumentException if input name is null
      */
-    public void putValue(String name, Object obj) {
+    public synchronized void putValue(String name, Object obj) {
         Object old;
 
         if (name == null) {
@@ -247,7 +253,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      *
      * @return Object value associated with name
      */
-    public Object getValue(String name) {
+    public synchronized Object getValue(String name) {
         return binding.get(name);
     }
 
@@ -258,7 +264,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      *
      * @throws IllegalArgumentException if input name is null
      */
-    public void removeValue(String name) {
+    public synchronized void removeValue(String name) {
         Object obj;
 
         if (name == null) {
@@ -281,7 +287,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      *
      * @return String array of value names stored in session
      */
-    public String[] getValueNames() {
+    public synchronized String[] getValueNames() {
         return binding.keySet().toArray(new String[binding.keySet().size()]);
     }
 
@@ -305,13 +311,15 @@ public class WolfSSLImplementSSLSession implements SSLSession {
             throw new SSLPeerUnverifiedException("handshake not complete");
         }
 
-        try {
-            x509 = this.ssl.getPeerCertificate();
-        } catch (IllegalStateException | WolfSSLJNIException ex) {
-            Logger.getLogger(
-                    WolfSSLImplementSSLSession.class.getName()).log(
-                        Level.SEVERE, null, ex);
-            return null;
+        synchronized (sslLock) {
+            try {
+                x509 = this.ssl.getPeerCertificate();
+            } catch (IllegalStateException | WolfSSLJNIException ex) {
+                Logger.getLogger(
+                        WolfSSLImplementSSLSession.class.getName()).log(
+                            Level.SEVERE, null, ex);
+                return null;
+            }
         }
 
         /* if no peer cert, throw SSLPeerUnverifiedException */
@@ -358,7 +366,7 @@ public class WolfSSLImplementSSLSession implements SSLSession {
     }
 
     @Override
-    public Certificate[] getLocalCertificates() {
+    public synchronized Certificate[] getLocalCertificates() {
         X509KeyManager km = authStore.getX509KeyManager();
         return km.getCertificateChain(authStore.getCertAlias());
     }
@@ -368,50 +376,56 @@ public class WolfSSLImplementSSLSession implements SSLSession {
         throws SSLPeerUnverifiedException {
         WolfSSLX509X x509;
 
-        if (ssl == null) {
-            throw new SSLPeerUnverifiedException("handshake not done");
+        synchronized (sslLock) {
+            if (ssl == null) {
+                throw new SSLPeerUnverifiedException("handshake not done");
+            }
+
+            try {
+                x509 = new WolfSSLX509X(this.ssl.getPeerCertificate());
+                return new javax.security.cert.X509Certificate[] {
+                    (javax.security.cert.X509Certificate)x509 };
+
+            } catch (IllegalStateException | WolfSSLJNIException |
+                    WolfSSLException ex) {
+                Logger.getLogger(
+                        WolfSSLImplementSSLSession.class.getName()).log(
+                            Level.SEVERE, null, ex);
+            }
         }
 
-        try {
-            x509 = new WolfSSLX509X(this.ssl.getPeerCertificate());
-            return new javax.security.cert.X509Certificate[] {
-                (javax.security.cert.X509Certificate)x509 };
-
-        } catch (IllegalStateException | WolfSSLJNIException |
-                WolfSSLException ex) {
-            Logger.getLogger(
-                    WolfSSLImplementSSLSession.class.getName()).log(
-                        Level.SEVERE, null, ex);
-        }
         return null;
     }
 
     @Override
     public synchronized Principal getPeerPrincipal()
         throws SSLPeerUnverifiedException {
-        if (ssl == null) {
-            throw new SSLPeerUnverifiedException("handshake not done");
-        }
 
-        try {
-            Principal peerPrincipal = null;
-            WolfSSLX509 x509 = new WolfSSLX509(this.ssl.getPeerCertificate());
-            peerPrincipal = x509.getSubjectDN();
-            x509.free();
+        synchronized (sslLock) {
+            if (ssl == null) {
+                throw new SSLPeerUnverifiedException("handshake not done");
+            }
 
-            return peerPrincipal;
+            try {
+                Principal peerPrincipal = null;
+                WolfSSLX509 x509 = new WolfSSLX509(this.ssl.getPeerCertificate());
+                peerPrincipal = x509.getSubjectDN();
+                x509.free();
 
-        } catch (IllegalStateException | WolfSSLJNIException |
-                WolfSSLException ex) {
-            Logger.getLogger(
-                    WolfSSLImplementSSLSession.class.getName()).log(
-                        Level.SEVERE, null, ex);
+                return peerPrincipal;
+
+            } catch (IllegalStateException | WolfSSLJNIException |
+                    WolfSSLException ex) {
+                Logger.getLogger(
+                        WolfSSLImplementSSLSession.class.getName()).log(
+                            Level.SEVERE, null, ex);
+            }
         }
         return null;
     }
 
     @Override
-    public Principal getLocalPrincipal() {
+    public synchronized Principal getLocalPrincipal() {
 
         X509KeyManager km = authStore.getX509KeyManager();
         java.security.cert.X509Certificate[] certs =
@@ -444,33 +458,41 @@ public class WolfSSLImplementSSLSession implements SSLSession {
 
     @Override
     public synchronized String getCipherSuite() {
-        if (ssl == null) {
-            return this.nullCipher;
+
+        synchronized (sslLock) {
+            if (ssl == null) {
+                return this.nullCipher;
+            }
+
+            try {
+                return this.ssl.cipherGetName();
+            } catch (IllegalStateException | WolfSSLJNIException ex) {
+                Logger.getLogger(
+                        WolfSSLImplementSSLSession.class.getName()).log(
+                            Level.SEVERE, null, ex);
+            }
         }
 
-        try {
-            return this.ssl.cipherGetName();
-        } catch (IllegalStateException | WolfSSLJNIException ex) {
-            Logger.getLogger(
-                    WolfSSLImplementSSLSession.class.getName()).log(
-                        Level.SEVERE, null, ex);
-        }
         return null;
     }
 
     @Override
     public synchronized String getProtocol() {
-        if (ssl == null) {
-            return this.nullProtocol;
+
+        synchronized (sslLock) {
+            if (ssl == null) {
+                return this.nullProtocol;
+            }
+
+            try {
+                return this.ssl.getVersion();
+            } catch (IllegalStateException | WolfSSLJNIException ex) {
+                Logger.getLogger(
+                        WolfSSLImplementSSLSession.class.getName()).log(
+                            Level.SEVERE, null, ex);
+            }
         }
 
-        try {
-            return this.ssl.getVersion();
-        } catch (IllegalStateException | WolfSSLJNIException ex) {
-            Logger.getLogger(
-                    WolfSSLImplementSSLSession.class.getName()).log(
-                        Level.SEVERE, null, ex);
-        }
         return null;
     }
 
@@ -506,17 +528,22 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      * @param in WOLFSSL session to set resume in
      */
     protected synchronized void resume(WolfSSLSession in) {
-        ssl = in;
-        ssl.setSession(this.sesPtr);
-    }
 
+        synchronized (sslLock) {
+            in.setSession(this.sesPtr);
+            ssl = in;
+        }
+    }
 
     /**
      * Should be called on shutdown to save the session pointer
      */
     protected synchronized void setResume() {
-        if (ssl != null) {
-            this.sesPtr = ssl.getSession();
+
+        synchronized (sslLock) {
+            if (ssl != null) {
+                this.sesPtr = ssl.getSession();
+            }
         }
     }
 
@@ -524,8 +551,11 @@ public class WolfSSLImplementSSLSession implements SSLSession {
      * Sets the native WOLFSSL_SESSION timeout
      * @param in timeout in seconds
      */
-    protected synchronized void setNativeTimeout(long in) {
-        ssl.setSessTimeout(in);
+    protected void setNativeTimeout(long in) {
+
+        synchronized (sslLock) {
+            ssl.setSessTimeout(in);
+        }
     }
 
 

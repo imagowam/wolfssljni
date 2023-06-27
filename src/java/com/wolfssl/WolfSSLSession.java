@@ -39,7 +39,7 @@ import com.wolfssl.WolfSSLJNIException;
  */
 public class WolfSSLSession {
 
-    private long sslPtr;    /* internal pointer to native WOLFSSL object */
+    private long sslPtr = 0;    /* internal pointer to native WOLFSSL object */
 
     private Object ioReadCtx;
     private Object ioWriteCtx;
@@ -68,7 +68,7 @@ public class WolfSSLSession {
     private WolfSSLIOSendCallback internSendSSLCb;
 
     /* have session tickets been enabled for this session? */
-    private boolean sessionTicketsEnabled = true;
+    private boolean sessionTicketsEnabled = false;
 
     /* is this context active, or has it been freed? */
     private boolean active = false;
@@ -76,6 +76,9 @@ public class WolfSSLSession {
     /* return values from naitve socketSelect(), should match
      * ones in native/com_wolfssl_WolfSSLSession.c */
     private int WOLFJNI_TIMEOUT = -11;
+
+    /* Lock around native sslPtr use */
+    private final Object sslLock = new Object();
 
     /**
      * Creates a new SSL/TLS session.
@@ -104,47 +107,47 @@ public class WolfSSLSession {
     }
 
     /* used from JNI code */
-    WolfSSLContext getAssociatedContextPtr() {
+    synchronized WolfSSLContext getAssociatedContextPtr() {
         return ctx;
     }
 
-    Object getGenCookieCtx() {
+    synchronized Object getGenCookieCtx() {
         return this.genCookieCtx;
     }
 
-    Object getMacEncryptCtx() {
+    synchronized Object getMacEncryptCtx() {
         return this.macEncryptCtx;
     }
 
-    Object getDecryptVerifyCtx() {
+    synchronized Object getDecryptVerifyCtx() {
         return this.decryptVerifyCtx;
     }
 
-    Object getEccSignCtx() {
+    synchronized Object getEccSignCtx() {
         return this.eccSignCtx;
     }
 
-    Object getEccVerifyCtx() {
+    synchronized Object getEccVerifyCtx() {
         return this.eccVerifyCtx;
     }
 
-    Object getEccSharedSecretCtx() {
+    synchronized Object getEccSharedSecretCtx() {
         return this.eccSharedSecretCtx;
     }
 
-    Object getRsaSignCtx() {
+    synchronized Object getRsaSignCtx() {
         return this.rsaSignCtx;
     }
 
-    Object getRsaVerifyCtx() {
+    synchronized Object getRsaVerifyCtx() {
         return this.rsaVerifyCtx;
     }
 
-    Object getRsaEncCtx() {
+    synchronized Object getRsaEncCtx() {
         return this.rsaEncCtx;
     }
 
-    Object getRsaDecCtx() {
+    synchronized Object getRsaDecCtx() {
         return this.rsaDecCtx;
     }
 
@@ -317,7 +320,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return useCertificateFile(getSessionPtr(), file, format);
+        synchronized (sslLock) {
+            return useCertificateFile(getSessionPtr(), file, format);
+        }
     }
 
     /**
@@ -350,7 +355,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return usePrivateKeyFile(getSessionPtr(), file, format);
+        synchronized (sslLock) {
+            return usePrivateKeyFile(getSessionPtr(), file, format);
+        }
     }
 
     /**
@@ -378,7 +385,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return useCertificateChainFile(getSessionPtr(), file);
+        synchronized (sslLock) {
+            return useCertificateChainFile(getSessionPtr(), file);
+        }
     }
 
 
@@ -396,7 +405,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setFd(getSessionPtr(), sd, 1);
+        synchronized (sslLock) {
+            return setFd(getSessionPtr(), sd, 1);
+        }
     }
 
     /**
@@ -414,7 +425,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setFd(getSessionPtr(), sd, 2);
+        synchronized (sslLock) {
+            return setFd(getSessionPtr(), sd, 2);
+        }
     }
 
     /**
@@ -438,7 +451,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        setUsingNonblock(getSessionPtr(), nonblock);
+        synchronized (sslLock) {
+            setUsingNonblock(getSessionPtr(), nonblock);
+        }
     }
 
     /**
@@ -461,7 +476,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getUsingNonblock(getSessionPtr());
+        synchronized (sslLock) {
+            return getUsingNonblock(getSessionPtr());
+        }
     }
 
     /**
@@ -479,7 +496,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getFd(getSessionPtr());
+        synchronized (sslLock) {
+            return getFd(getSessionPtr());
+        }
     }
 
     /**
@@ -523,7 +542,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = connect(getSessionPtr(), 0);
+        synchronized (sslLock) {
+            ret = connect(getSessionPtr(), 0);
+        }
 
         if (ret == WolfSSL.WOLFJNI_TIMEOUT) {
             throw new SocketTimeoutException(
@@ -578,7 +599,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = connect(getSessionPtr(), timeout);
+        synchronized (sslLock) {
+            ret = connect(getSessionPtr(), timeout);
+        }
 
         if (ret == WOLFJNI_TIMEOUT) {
             throw new SocketTimeoutException("Socket connect timeout");
@@ -622,7 +645,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return write(getSessionPtr(), data, length, 0);
+        synchronized (sslLock) {
+            return write(getSessionPtr(), data, length, 0);
+        }
     }
 
     /**
@@ -666,7 +691,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = write(getSessionPtr(), data, length, timeout);
+        synchronized (sslLock) {
+            ret = write(getSessionPtr(), data, length, timeout);
+        }
 
         if (ret == WOLFJNI_TIMEOUT) {
             throw new SocketTimeoutException("Socket write timeout");
@@ -713,7 +740,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return read(getSessionPtr(), data, sz, 0);
+        synchronized (sslLock) {
+            return read(getSessionPtr(), data, sz, 0);
+        }
     }
 
     /**
@@ -759,7 +788,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = read(getSessionPtr(), data, sz, timeout);
+        synchronized (sslLock) {
+            ret = read(getSessionPtr(), data, sz, timeout);
+        }
 
         if (ret == WOLFJNI_TIMEOUT) {
             throw new SocketTimeoutException("Socket read timeout");
@@ -798,7 +829,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return accept(getSessionPtr());
+        synchronized (sslLock) {
+            return accept(getSessionPtr());
+        }
     }
 
     /**
@@ -815,8 +848,10 @@ public class WolfSSLSession {
         if (this.active == false)
             return;
 
-        /* free native resources */
-        freeSSL(getSessionPtr());
+        synchronized (sslLock) {
+            /* free native resources */
+            freeSSL(getSessionPtr());
+        }
 
         /* free Java resources */
         this.active = false;
@@ -855,7 +890,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return shutdownSSL(getSessionPtr(), 0);
+        synchronized (sslLock) {
+            return shutdownSSL(getSessionPtr(), 0);
+        }
     }
 
     /**
@@ -896,7 +933,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = shutdownSSL(getSessionPtr(), timeout);
+        synchronized (sslLock) {
+            ret = shutdownSSL(getSessionPtr(), timeout);
+        }
 
         if (ret == WOLFJNI_TIMEOUT) {
             throw new SocketTimeoutException("Socket read timeout");
@@ -927,7 +966,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getError(getSessionPtr(), ret);
+        synchronized (sslLock) {
+            return getError(getSessionPtr(), ret);
+        }
     }
 
     /**
@@ -951,11 +992,14 @@ public class WolfSSLSession {
      * @throws IllegalStateException WolfSSLContext has been freed
      * @see    #getSession()
      */
-    public int setSession(long session) throws IllegalStateException {
+    public synchronized int setSession(long session)
+        throws IllegalStateException {
 
         confirmObjectIsActive();
 
-        return setSession(getSessionPtr(), session);
+        synchronized (sslLock) {
+            return setSession(getSessionPtr(), session);
+        }
     }
 
     /**
@@ -979,11 +1023,13 @@ public class WolfSSLSession {
      *              the session ID available, or mutex functions fail.
      * @see         #setSession(long)
      */
-    public long getSession() throws IllegalStateException {
+    public synchronized long getSession() throws IllegalStateException {
 
         confirmObjectIsActive();
 
-        return getSession(getSessionPtr());
+        synchronized (sslLock) {
+            return getSession(getSessionPtr());
+        }
     }
 
     /**
@@ -994,15 +1040,17 @@ public class WolfSSLSession {
      *              session ID
      * @see         #setSession(long)
      */
-    public byte[] getSessionID() throws IllegalStateException {
+    public synchronized byte[] getSessionID() throws IllegalStateException {
 
         confirmObjectIsActive();
 
-        long sess = getSession();
-        if (sess != 0) {
-            return getSessionID(sess);
-        } else {
-            return new byte[0];
+        synchronized (sslLock) {
+            long sess = getSession(getSessionPtr());
+            if (sess != 0) {
+                return getSessionID(sess);
+            } else {
+                return new byte[0];
+            }
         }
     }
 
@@ -1076,7 +1124,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setTimeout(getSessionPtr(), t);
+        synchronized (sslLock) {
+            return setTimeout(getSessionPtr(), t);
+        }
     }
 
     /**
@@ -1091,7 +1141,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getTimeout(getSessionPtr());
+        synchronized (sslLock) {
+            return getTimeout(getSessionPtr());
+        }
     }
 
     /**
@@ -1121,7 +1173,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setCipherList(getSessionPtr(), list);
+        synchronized (sslLock) {
+            return setCipherList(getSessionPtr(), list);
+        }
     }
 
 
@@ -1149,7 +1203,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return dtlsGetCurrentTimeout(getSessionPtr());
+        synchronized (sslLock) {
+            return dtlsGetCurrentTimeout(getSessionPtr());
+        }
     }
 
     /**
@@ -1176,7 +1232,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return dtlsGotTimeout(getSessionPtr());
+        synchronized (sslLock) {
+            return dtlsGotTimeout(getSessionPtr());
+        }
     }
 
     /**
@@ -1196,7 +1254,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return dtls(getSessionPtr());
+        synchronized (sslLock) {
+            return dtls(getSessionPtr());
+        }
     }
 
     /**
@@ -1218,7 +1278,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return dtlsSetPeer(getSessionPtr(), peer);
+        synchronized (sslLock) {
+            return dtlsSetPeer(getSessionPtr(), peer);
+        }
     }
 
     /**
@@ -1236,7 +1298,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return dtlsGetPeer(getSessionPtr());
+        synchronized (sslLock) {
+            return dtlsGetPeer(getSessionPtr());
+        }
     }
 
     /**
@@ -1258,7 +1322,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return sessionReused(getSessionPtr());
+        synchronized (sslLock) {
+            return sessionReused(getSessionPtr());
+        }
     }
 
     /**
@@ -1279,7 +1345,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPeerCertificate(getSessionPtr());
+        synchronized (sslLock) {
+            return getPeerCertificate(getSessionPtr());
+        }
     }
 
     /**
@@ -1300,7 +1368,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPeerX509Issuer(getSessionPtr(), x509);
+        synchronized (sslLock) {
+            return getPeerX509Issuer(getSessionPtr(), x509);
+        }
     }
 
     /**
@@ -1321,7 +1391,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPeerX509Subject(getSessionPtr(), x509);
+        synchronized (sslLock) {
+            return getPeerX509Subject(getSessionPtr(), x509);
+        }
     }
 
     /**
@@ -1346,7 +1418,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPeerX509AltName(getSessionPtr(), x509);
+        synchronized (sslLock) {
+            return getPeerX509AltName(getSessionPtr(), x509);
+        }
     }
 
     /**
@@ -1365,7 +1439,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getVersion(getSessionPtr());
+        synchronized (sslLock) {
+            return getVersion(getSessionPtr());
+        }
     }
 
     /**
@@ -1385,7 +1461,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getCurrentCipher(getSessionPtr());
+        synchronized (sslLock) {
+            return getCurrentCipher(getSessionPtr());
+        }
     }
 
     /**
@@ -1408,7 +1486,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return checkDomainName(getSessionPtr(), dn);
+        synchronized (sslLock) {
+            return checkDomainName(getSessionPtr(), dn);
+        }
     }
 
     /**
@@ -1432,7 +1512,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setTmpDH(getSessionPtr(), p, pSz, g, gSz);
+        synchronized (sslLock) {
+            return setTmpDH(getSessionPtr(), p, pSz, g, gSz);
+        }
     }
 
     /**
@@ -1459,7 +1541,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setTmpDHFile(getSessionPtr(), fname, format);
+        synchronized (sslLock) {
+            return setTmpDHFile(getSessionPtr(), fname, format);
+        }
     }
 
     /**
@@ -1494,7 +1578,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return useCertificateBuffer(getSessionPtr(), in, sz, format);
+        synchronized (sslLock) {
+            return useCertificateBuffer(getSessionPtr(), in, sz, format);
+        }
     }
 
     /**
@@ -1532,7 +1618,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return usePrivateKeyBuffer(getSessionPtr(), in, sz, format);
+        synchronized (sslLock) {
+            return usePrivateKeyBuffer(getSessionPtr(), in, sz, format);
+        }
     }
 
     /**
@@ -1570,7 +1658,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return useCertificateChainBuffer(getSessionPtr(), in, sz);
+        synchronized (sslLock) {
+            return useCertificateChainBuffer(getSessionPtr(), in, sz);
+        }
     }
 
     /**
@@ -1588,7 +1678,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setGroupMessages(getSessionPtr());
+        synchronized (sslLock) {
+            return setGroupMessages(getSessionPtr());
+        }
     }
 
     /**
@@ -1724,7 +1816,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return enableCRL(getSessionPtr(), options);
+        synchronized (sslLock) {
+            return enableCRL(getSessionPtr(), options);
+        }
     }
 
     /**
@@ -1749,7 +1843,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return disableCRL(getSessionPtr());
+        synchronized (sslLock) {
+            return disableCRL(getSessionPtr());
+        }
     }
 
     /**
@@ -1795,7 +1891,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return loadCRL(getSessionPtr(), path, type, monitor);
+        synchronized (sslLock) {
+            return loadCRL(getSessionPtr(), path, type, monitor);
+        }
     }
 
     /**
@@ -1819,7 +1917,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setCRLCb(getSessionPtr(), cb);
+        synchronized (sslLock) {
+            return setCRLCb(getSessionPtr(), cb);
+        }
     }
 
     /**
@@ -1837,7 +1937,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return cipherGetName(getSessionPtr());
+        synchronized (sslLock) {
+            return cipherGetName(getSessionPtr());
+        }
     }
 
     /**
@@ -1859,7 +1961,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getMacSecret(getSessionPtr(), verify);
+        synchronized (sslLock) {
+            return getMacSecret(getSessionPtr(), verify);
+        }
     }
 
     /**
@@ -1877,7 +1981,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getClientWriteKey(getSessionPtr());
+        synchronized (sslLock) {
+            return getClientWriteKey(getSessionPtr());
+        }
     }
 
     /**
@@ -1897,7 +2003,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getClientWriteIV(getSessionPtr());
+        synchronized (sslLock) {
+            return getClientWriteIV(getSessionPtr());
+        }
     }
 
     /**
@@ -1915,7 +2023,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getServerWriteKey(getSessionPtr());
+        synchronized (sslLock) {
+            return getServerWriteKey(getSessionPtr());
+        }
     }
 
     /**
@@ -1935,7 +2045,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getServerWriteIV(getSessionPtr());
+        synchronized (sslLock) {
+            return getServerWriteIV(getSessionPtr());
+        }
     }
 
     /**
@@ -1951,7 +2063,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getKeySize(getSessionPtr());
+        synchronized (sslLock) {
+            return getKeySize(getSessionPtr());
+        }
     }
 
     /**
@@ -1969,7 +2083,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getSide(getSessionPtr());
+        synchronized (sslLock) {
+            return getSide(getSessionPtr());
+        }
     }
 
     /**
@@ -1986,7 +2102,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return isTLSv1_1(getSessionPtr());
+        synchronized (sslLock) {
+            return isTLSv1_1(getSessionPtr());
+        }
     }
 
     /**
@@ -2010,7 +2128,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getBulkCipher(getSessionPtr());
+        synchronized (sslLock) {
+            return getBulkCipher(getSessionPtr());
+        }
     }
 
     /**
@@ -2027,7 +2147,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getCipherBlockSize(getSessionPtr());
+        synchronized (sslLock) {
+            return getCipherBlockSize(getSessionPtr());
+        }
     }
 
     /**
@@ -2045,7 +2167,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getAeadMacSize(getSessionPtr());
+        synchronized (sslLock) {
+            return getAeadMacSize(getSessionPtr());
+        }
     }
 
     /**
@@ -2063,7 +2187,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getHmacSize(getSessionPtr());
+        synchronized (sslLock) {
+            return getHmacSize(getSessionPtr());
+        }
     }
 
     /**
@@ -2088,7 +2214,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getHmacType(getSessionPtr());
+        synchronized (sslLock) {
+            return getHmacType(getSessionPtr());
+        }
     }
 
     /**
@@ -2109,7 +2237,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getCipherType(getSessionPtr());
+        synchronized (sslLock) {
+            return getCipherType(getSessionPtr());
+        }
     }
 
     /**
@@ -2136,7 +2266,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setTlsHmacInner(getSessionPtr(), inner, sz, content, verify);
+        synchronized (sslLock) {
+            return setTlsHmacInner(getSessionPtr(), inner, sz, content, verify);
+        }
     }
 
     /**
@@ -2190,7 +2322,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         eccSignCtx = ctx;
-        setEccSignCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setEccSignCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2208,7 +2342,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         eccVerifyCtx = ctx;
-        setEccVerifyCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setEccVerifyCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2227,7 +2363,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         eccSharedSecretCtx = ctx;
-        setEccSharedSecretCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setEccSharedSecretCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2245,7 +2383,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         rsaSignCtx = ctx;
-        setRsaSignCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setRsaSignCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2264,7 +2404,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         rsaVerifyCtx = ctx;
-        setRsaVerifyCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setRsaVerifyCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2283,7 +2425,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         rsaEncCtx = ctx;
-        setRsaEncCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setRsaEncCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2302,7 +2446,9 @@ public class WolfSSLSession {
         confirmObjectIsActive();
 
         rsaDecCtx = ctx;
-        setRsaDecCtx(getSessionPtr());
+        synchronized (sslLock) {
+            setRsaDecCtx(getSessionPtr());
+        }
     }
 
     /**
@@ -2344,8 +2490,10 @@ public class WolfSSLSession {
         /* set PSK client callback */
         internPskClientCb = callback;
 
-        /* register internal callback with native library */
-        setPskClientCb(getSessionPtr());
+        synchronized (sslLock) {
+            /* register internal callback with native library */
+            setPskClientCb(getSessionPtr());
+        }
     }
 
     /**
@@ -2383,8 +2531,10 @@ public class WolfSSLSession {
         /* set PSK server callback */
         internPskServerCb = callback;
 
-        /* register internal callback with native library */
-        setPskServerCb(getSessionPtr());
+        synchronized (sslLock) {
+            /* register internal callback with native library */
+            setPskServerCb(getSessionPtr());
+        }
     }
 
     /**
@@ -2404,7 +2554,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPskIdentityHint(getSessionPtr());
+        synchronized (sslLock) {
+            return getPskIdentityHint(getSessionPtr());
+        }
     }
 
     /**
@@ -2424,7 +2576,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getPskIdentity(getSessionPtr());
+        synchronized (sslLock) {
+            return getPskIdentity(getSessionPtr());
+        }
     }
 
     /**
@@ -2446,7 +2600,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return usePskIdentityHint(getSessionPtr(), hint);
+        synchronized (sslLock) {
+            return usePskIdentityHint(getSessionPtr(), hint);
+        }
     }
 
     /**
@@ -2459,7 +2615,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return handshakeDone(getSessionPtr());
+        synchronized (sslLock) {
+            return handshakeDone(getSessionPtr());
+        }
     }
 
     /**
@@ -2471,7 +2629,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        setConnectState(getSessionPtr());
+        synchronized (sslLock) {
+            setConnectState(getSessionPtr());
+        }
     }
 
     /**
@@ -2483,7 +2643,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        setAcceptState(getSessionPtr());
+        synchronized (sslLock) {
+            setAcceptState(getSessionPtr());
+        }
     }
 
     /**
@@ -2525,7 +2687,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        setVerify(getSessionPtr(), mode, callback);
+        synchronized (sslLock) {
+            setVerify(getSessionPtr(), mode, callback);
+        }
     }
 
     /**
@@ -2542,7 +2706,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return setOptions(getSessionPtr(), op);
+        synchronized (sslLock) {
+            return setOptions(getSessionPtr(), op);
+        }
     }
 
 
@@ -2559,7 +2725,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getOptions(getSessionPtr());
+        synchronized (sslLock) {
+            return getOptions(getSessionPtr());
+        }
     }
 
     /**
@@ -2572,12 +2740,14 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        int ret = gotCloseNotify(getSessionPtr());
+        synchronized (sslLock) {
+            int ret = gotCloseNotify(getSessionPtr());
 
-        if (ret == 1) {
-            return true;
-        } else {
-            return false;
+            if (ret == 1) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
@@ -2609,8 +2779,10 @@ public class WolfSSLSession {
         /* set user I/O recv */
         internRecvSSLCb = callback;
 
-        /* register internal callback with native library */
-        setSSLIORecv(getSessionPtr());
+        synchronized (sslLock) {
+            /* register internal callback with native library */
+            setSSLIORecv(getSessionPtr());
+        }
     }
 
     /**
@@ -2641,8 +2813,10 @@ public class WolfSSLSession {
         /* set user I/O send */
         internSendSSLCb = callback;
 
-        /* register internal callback with native library */
-        setSSLIOSend(getSessionPtr());
+        synchronized (sslLock) {
+            /* register internal callback with native library */
+            setSSLIOSend(getSessionPtr());
+        }
     }
 
     /**
@@ -2663,7 +2837,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = useSNI(getSessionPtr(), type, data);
+        synchronized (sslLock) {
+            ret = useSNI(getSessionPtr(), type, data);
+        }
 
         return ret;
     }
@@ -2680,9 +2856,11 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        ret = useSessionTicket(getSessionPtr());
-        if (ret == WolfSSL.SSL_SUCCESS) {
-            this.sessionTicketsEnabled = true;
+        synchronized (sslLock) {
+            ret = useSessionTicket(getSessionPtr());
+            if (ret == WolfSSL.SSL_SUCCESS) {
+                this.sessionTicketsEnabled = true;
+            }
         }
 
         return ret;
@@ -2720,7 +2898,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return sslSetAlpnProtos(getSessionPtr(), alpnProtos);
+        synchronized (sslLock) {
+            return sslSetAlpnProtos(getSessionPtr(), alpnProtos);
+        }
     }
 
     /**
@@ -2758,7 +2938,9 @@ public class WolfSSLSession {
             allProtocols.append(protocols[i]);
         }
 
-        return useALPN(getSessionPtr(), allProtocols.toString(), options);
+        synchronized (sslLock) {
+            return useALPN(getSessionPtr(), allProtocols.toString(), options);
+        }
     }
 
     /**
@@ -2771,7 +2953,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return sslGet0AlpnSelected(getSessionPtr());
+        synchronized (sslLock) {
+            return sslGet0AlpnSelected(getSessionPtr());
+        }
     }
 
     /**
@@ -2813,7 +2997,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return useSecureRenegotiation(getSessionPtr());
+        synchronized (sslLock) {
+            return useSecureRenegotiation(getSessionPtr());
+        }
     }
 
     /**
@@ -2861,7 +3047,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return rehandshake(getSessionPtr());
+        synchronized (sslLock) {
+            return rehandshake(getSessionPtr());
+        }
     }
 
     /**
@@ -2872,7 +3060,9 @@ public class WolfSSLSession {
 
         confirmObjectIsActive();
 
-        return getShutdown(getSessionPtr());
+        synchronized (sslLock) {
+            return getShutdown(getSessionPtr());
+        }
     }
 
         /* this will be registered with native wolfSSL library */
