@@ -1053,6 +1053,61 @@ public class WolfSSL {
         return cipherSuites.split(":");
     }
 
+    /**
+     * Checks which protocols were built into wolfSSL
+     *
+     * @return an array of Strings for supported protocols
+     */
+    public static native String[] getProtocols();
+
+    /**
+     * Checks which protocols were built into wolfSSL with Mask
+     *
+     * @param mask flags prohibiting TLS version (i.e. SSL_OP_NO_xxx)
+     * @return an array of Strings for supported protocols
+     */
+    public static native String[] getProtocolsMask(long mask);
+
+    /**
+     * Return number of active sessions in local session cache.
+     *
+     * To use this API native wolfSSL must be compiled with
+     * WOLFSSL_SESSION_STATS.
+     *
+     * @return number of sessions active or negative on error
+     */
+    public static native int getSessionStatsActive();
+
+    /**
+     * Return number of total sessions seen in local session cache.
+     *
+     * To use this API native wolfSSL must be compiled with
+     * WOLFSSL_SESSION_STATS.
+     *
+     * @return number of total sessions seen or negative on error
+     */
+    public static native int getSessionStatsTotal();
+
+    /**
+     * Return number of peak sessions in local session cache.
+     *
+     * To use this API native wolfSSL must be compiled with
+     * WOLFSSL_SESSION_STATS.
+     *
+     * @return number of peak sessions or negative on error
+     */
+    public static native int getSessionStatsPeak();
+
+    /**
+     * Return number of max sessions in local session cache.
+     *
+     * To use this API native wolfSSL must be compiled with
+     * WOLFSSL_SESSION_STATS.
+     *
+     * @return number of max sessions or negative on error
+     */
+    public static native int getSessionStatsMaxSessions();
+
     /* ------------------------- isEnabled methods -------------------------- */
 
     /**
@@ -1104,21 +1159,6 @@ public class WolfSSL {
      * @return 1 if enabled, 0 if not compiled in
      */
     public static native int isEnabledPKCallbacks();
-
-    /**
-     * Checks which protocols where built into wolfSSL
-     *
-     * @return an array of Strings for supported protocols
-     */
-    public static native String[] getProtocols();
-
-    /**
-     * Checks which protocols where built into wolfSSL with Mask
-     *
-     * @param mask flags prohibiting TLS version (i.e. SSL_OP_NO_xxx)
-     * @return an array of Strings for supported protocols
-     */
-    public static native String[] getProtocolsMask(long mask);
 
     @SuppressWarnings("deprecation")
     @Override

@@ -1534,3 +1534,104 @@ JNIEXPORT jobjectArray JNICALL Java_com_wolfssl_WolfSSL_getProtocolsMask
 #endif
     return ret;
 }
+
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsActive
+  (JNIEnv* jenv, jclass jcl)
+{
+#if !defined(NO_SESSION_CACHE) && defined(WOLFSSL_SESSION_STATS)
+    int ret = 0;
+    word32 active = 0;
+
+    if (jenv == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    ret = wolfSSL_get_session_stats(&active, NULL, NULL, NULL);
+
+    if (ret != WOLFSSL_SUCCESS) {
+        return (jint)ret;
+    } else {
+        return (jint)active;
+    }
+#else
+    (void)jenv;
+    (void)jcl;
+    return (jint)NOT_COMPILED_IN;
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsTotal
+  (JNIEnv* jenv, jclass jcl)
+{
+#if !defined(NO_SESSION_CACHE) && defined(WOLFSSL_SESSION_STATS)
+    int ret = 0;
+    word32 total = 0;
+
+    if (jenv == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    ret = wolfSSL_get_session_stats(NULL, &total, NULL, NULL);
+
+    if (ret != WOLFSSL_SUCCESS) {
+        return (jint)ret;
+    } else {
+        return (jint)total;
+    }
+#else
+    (void)jenv;
+    (void)jcl;
+    return (jint)NOT_COMPILED_IN;
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsPeak
+  (JNIEnv* jenv, jclass jcl)
+{
+#if !defined(NO_SESSION_CACHE) && defined(WOLFSSL_SESSION_STATS)
+    int ret = 0;
+    word32 peak = 0;
+
+    if (jenv == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    ret = wolfSSL_get_session_stats(NULL, NULL, &peak, NULL);
+
+    if (ret != WOLFSSL_SUCCESS) {
+        return (jint)ret;
+    } else {
+        return (jint)peak;
+    }
+#else
+    (void)jenv;
+    (void)jcl;
+    return (jint)NOT_COMPILED_IN;
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsMaxSessions
+  (JNIEnv* jenv, jclass jcl)
+{
+#if !defined(NO_SESSION_CACHE) && defined(WOLFSSL_SESSION_STATS)
+    int ret = 0;
+    word32 max = 0;
+
+    if (jenv == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    ret = wolfSSL_get_session_stats(NULL, NULL, NULL, &max);
+
+    if (ret != WOLFSSL_SUCCESS) {
+        return (jint)ret;
+    } else {
+        return (jint)max;
+    }
+#else
+    (void)jenv;
+    (void)jcl;
+    return (jint)NOT_COMPILED_IN;
+#endif
+}
+

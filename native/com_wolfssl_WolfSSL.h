@@ -657,6 +657,54 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getHmacMaxSize
 
 /*
  * Class:     com_wolfssl_WolfSSL
+ * Method:    getProtocols
+ * Signature: ()[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_wolfssl_WolfSSL_getProtocols
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
+ * Method:    getProtocolsMask
+ * Signature: (J)[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_wolfssl_WolfSSL_getProtocolsMask
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
+ * Method:    getSessionStatsActive
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsActive
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
+ * Method:    getSessionStatsTotal
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsTotal
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
+ * Method:    getSessionStatsPeak
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsPeak
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
+ * Method:    getSessionStatsMaxSessions
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_getSessionStatsMaxSessions
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_wolfssl_WolfSSL
  * Method:    isEnabledCRL
  * Signature: ()I
  */
@@ -710,22 +758,6 @@ JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_isEnabledAtomicUser
  */
 JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSL_isEnabledPKCallbacks
   (JNIEnv *, jclass);
-
-/*
- * Class:     com_wolfssl_WolfSSL
- * Method:    getProtocols
- * Signature: ()[Ljava/lang/String;
- */
-JNIEXPORT jobjectArray JNICALL Java_com_wolfssl_WolfSSL_getProtocols
-  (JNIEnv *, jclass);
-
-/*
- * Class:     com_wolfssl_WolfSSL
- * Method:    getProtocolsMask
- * Signature: (J)[Ljava/lang/String;
- */
-JNIEXPORT jobjectArray JNICALL Java_com_wolfssl_WolfSSL_getProtocolsMask
-  (JNIEnv *, jclass, jlong);
 
 #ifdef __cplusplus
 }
