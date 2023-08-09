@@ -1762,7 +1762,7 @@ public class WolfSSLSocket extends SSLSocket {
         }
     }
 
-    static class WolfSSLInputStream extends InputStream {
+    class WolfSSLInputStream extends InputStream {
 
         private WolfSSLSession ssl;
         private WolfSSLSocket  socket;
@@ -1851,24 +1851,26 @@ public class WolfSSLSocket extends SSLSocket {
                 try {
                     int err;
 
-                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                        "ssl.read() socket timeout = " + socket.getSoTimeout());
-
-                    ret = ssl.read(data, len, socket.getSoTimeout());
-                    err = ssl.getError(ret);
-
-                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                        "ssl.read() ret = " + ret + ", err = " + err);
-
-                    /* check for end of stream */
-                    if ((err == WolfSSL.SSL_ERROR_ZERO_RETURN) ||
-                        ((err == WolfSSL.SSL_ERROR_SOCKET_PEER_CLOSED) && (ret == 0))) {
+                    synchronized (ioLock) {
                         WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                            "ssl.read() got SSL_ERROR_ZERO_RETURN, " + err +
-                            ", end of stream");
+                            "ssl.read() socket timeout = " + socket.getSoTimeout());
 
-                        /* End of stream */
-                        return -1;
+                        ret = ssl.read(data, len, socket.getSoTimeout());
+                        err = ssl.getError(ret);
+
+                        WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                            "ssl.read() ret = " + ret + ", err = " + err);
+
+                        /* check for end of stream */
+                        if ((err == WolfSSL.SSL_ERROR_ZERO_RETURN) ||
+                            ((err == WolfSSL.SSL_ERROR_SOCKET_PEER_CLOSED) && (ret == 0))) {
+                            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                                "ssl.read() got SSL_ERROR_ZERO_RETURN, " + err +
+                                ", end of stream");
+
+                            /* End of stream */
+                            return -1;
+                        }
                     }
 
                     if (ret < 0) {
@@ -1901,7 +1903,7 @@ public class WolfSSLSocket extends SSLSocket {
         }
     } /* end WolfSSLInputStream inner class */
 
-    static class WolfSSLOutputStream extends OutputStream {
+    class WolfSSLOutputStream extends OutputStream {
 
         private WolfSSLSession ssl;
         private WolfSSLSocket  socket;
@@ -1972,27 +1974,29 @@ public class WolfSSLSocket extends SSLSocket {
                 try {
                     int err;
 
-                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                        "ssl.write() socket timeout = " +
-                        socket.getSoTimeout());
-
-                    ret = ssl.write(data, len, socket.getSoTimeout());
-                    err = ssl.getError(ret);
-
-                    WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                        "ssl.write returned ret = " + ret + ", err = " + err);
-
-                    /* check for end of stream */
-                    if (err == WolfSSL.SSL_ERROR_ZERO_RETURN) {
+                    synchronized (ioLock) {
                         WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
-                            "ssl.write() got SSL_ERROR_ZERO_RETURN, " +
-                            "end of stream");
+                            "ssl.write() socket timeout = " +
+                            socket.getSoTimeout());
 
-                        /* check to see if we received a close notify alert.
-                         * if so, throw SocketException since peer has closed
-                         * the connection */
-                        if (ssl.gotCloseNotify() == true) {
-                            throw new SocketException("Peer closed connection");
+                        ret = ssl.write(data, len, socket.getSoTimeout());
+                        err = ssl.getError(ret);
+
+                        WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                            "ssl.write returned ret = " + ret + ", err = " + err);
+
+                        /* check for end of stream */
+                        if (err == WolfSSL.SSL_ERROR_ZERO_RETURN) {
+                            WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+                                "ssl.write() got SSL_ERROR_ZERO_RETURN, " +
+                                "end of stream");
+
+                            /* check to see if we received a close notify alert.
+                             * if so, throw SocketException since peer has closed
+                             * the connection */
+                            if (ssl.gotCloseNotify() == true) {
+                                throw new SocketException("Peer closed connection");
+                            }
                         }
                     }
 
