@@ -199,6 +199,14 @@ JNIEXPORT jlong JNICALL Java_com_wolfssl_WolfSSLCertificate_X509_1load_1certific
 JNIEXPORT jlong JNICALL Java_com_wolfssl_WolfSSLCertificate_X509_1load_1certificate_1file
   (JNIEnv *, jclass, jstring, jint);
 
+/*
+ * Class:     com_wolfssl_WolfSSLCertificate
+ * Method:    X509_check_host
+ * Signature: (JLjava/lang/String;JJ)I
+ */
+JNIEXPORT jint JNICALL Java_com_wolfssl_WolfSSLCertificate_X509_1check_1host
+  (JNIEnv *, jclass, jlong, jstring, jlong, jlong);
+
 #ifdef __cplusplus
 }
 #endif

@@ -79,6 +79,8 @@ public class WolfSSLCertificate {
     static native String X509_get_next_altname(long x509);
     static native long X509_load_certificate_buffer(byte[] buf, int format);
     static native long X509_load_certificate_file(String path, int format);
+    static native int X509_check_host(long x509, String chk, long flags,
+        long peerName);
 
     /**
      * Create new WolfSSLCertificate from DER-encoded byte array.
@@ -593,6 +595,30 @@ public class WolfSSLCertificate {
                 return 0;
             }
             return X509_is_extension_set(this.x509Ptr, oid);
+        }
+    }
+
+    /**
+     * Checks that given hostname matches this certificate SubjectAltName
+     * or CommonName entries.
+     *
+     * @param hostname Hostname to check certificate against
+     *
+     * @return WolfSSL.SSL_SUCCESS on successful hostname match,
+     *         WolfSSL.SSL_FAILURE on invalid match or error, or
+     *         WolfSSL.NOT_COMPILED_IN if native wolfSSL has been compiled
+     *         with NO_ASN defined and native API is not available.
+     *
+     * @throws IllegalStateException if WolfSSLCertificate has been freed.
+     */
+    public int checkHost(String hostname) throws IllegalStateException {
+
+        synchronized (stateLock) {
+            if (this.active == false) {
+                throw new IllegalStateException("Object has been freed");
+            }
+
+            return X509_check_host(this.x509Ptr, hostname, 0, 0);
         }
     }
 

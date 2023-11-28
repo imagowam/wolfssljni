@@ -30,12 +30,20 @@ import java.security.cert.X509Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateEncodingException;
 import java.util.Date;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Collections;
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.ExtendedSSLSession;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
@@ -47,7 +55,9 @@ import javax.net.ssl.X509KeyManager;
  * @author wolfSSL
  */
 @SuppressWarnings("deprecation")
-public class WolfSSLImplementSSLSession implements SSLSession {
+public class WolfSSLImplementSSLSession extends ExtendedSSLSession
+    implements SSLSession {
+
     private WolfSSLSession ssl = null;
     private final WolfSSLAuthStore authStore;
     private WolfSSLSessionContext ctx = null;
@@ -118,6 +128,9 @@ public class WolfSSLImplementSSLSession implements SSLSession {
 
         creation = new Date();
         accessed = new Date();
+
+        WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+            "created new session (port: " + port + ", host: " + host + ")");
     }
 
     /**
@@ -139,6 +152,9 @@ public class WolfSSLImplementSSLSession implements SSLSession {
 
         creation = new Date();
         accessed = new Date();
+
+        WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+            "created new session (no host/port yet)");
     }
 
     /**
@@ -157,6 +173,9 @@ public class WolfSSLImplementSSLSession implements SSLSession {
 
         creation = new Date();
         accessed = new Date();
+
+        WolfSSLDebug.log(getClass(), WolfSSLDebug.INFO,
+            "created new session (WolfSSLAuthStore)");
     }
 
     /**
@@ -706,6 +725,52 @@ public class WolfSSLImplementSSLSession implements SSLSession {
     protected int getSide() {
         return this.side;
     }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        /* TODO */
+        return null;
+    }
+
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        /* TODO */
+        return null;
+    }
+
+    /**
+     * Return a list of all SNI server names of the requested Server Name
+     * Indication (SNI) extension.
+     *
+     * @return non-null immutable List of SNIServerNames. List may be emtpy
+     *         if no SNI names were requested.
+     */
+    @Override
+    public List<SNIServerName> getRequestedServerNames()
+        throws UnsupportedOperationException {
+
+        byte[] sniRequestArr = null;
+        List<SNIServerName> sniNames = new ArrayList<>(1);
+
+        if (this.ssl == null) {
+            return Collections.emptyList();
+        }
+
+        try {
+            sniRequestArr = this.ssl.getClientSNIRequest();
+            if (sniRequestArr != null) {
+                SNIHostName sniName = new SNIHostName(sniRequestArr);
+                sniNames.add(sniName);
+
+                return sniNames;
+            }
+        } catch (IllegalArgumentException e) {
+            throw new UnsupportedOperationException(e);
+        }
+
+        return Collections.emptyList();
+    }
+
 
     @SuppressWarnings("deprecation")
     @Override
