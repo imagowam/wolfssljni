@@ -17,13 +17,13 @@ jobs:
           install: true
 
   build_wolfssljni:
+    name: Ubuntu ${{ matrix.java }} (${{ matrix.distribution }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # Add more distributions to matrix here
         distribution: [ 'zulu' ]
         java: [ '8' ]
-    name: Ubuntu ${{ matrix.java }} (${{ matrix.distribution }})
     steps:
       - uses: actions/checkout@v4
       - name: Setup java
