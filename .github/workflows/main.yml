@@ -1,0 +1,10 @@
+name: CI
+on:
+  push:
+    branches: [ 'master', 'main', 'release/**' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  linux:
+    uses: ./.github/workflows/linux-java8.yml
