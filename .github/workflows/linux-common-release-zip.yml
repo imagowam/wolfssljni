@@ -15,7 +15,7 @@ on:
       wolfssl_configure:
         required: true
         type: string
-      wolfssl_git_tag:
+      wolfssl_version:
         required: true
         type: string
 
@@ -30,15 +30,23 @@ jobs:
       - name: Download hamcrest-all-1.3.jar
         run: wget --directory-prefix=$GITHUB_WORKSPACE/junit https://repo1.maven.org/maven2/org/hamcrest/hamcrest-all/1.3/hamcrest-all-1.3.jar
 
-      - name: Build native wolfSSL
-        uses: wolfSSL/actions-build-autotools-project@v1
-        with:
-          repository: wolfSSL/wolfssl
-          ref: ${{ inputs.wolfssl_git_tag }}
-          path: wolfssl
-          configure: ${{ inputs.wolfssl_configure }}
-          check: false
-          install: true
+      - name: Download wolfSSL
+        run: wget --directory-prefix=$GITHUB_WORKSPACE https://www.wolfssl.com/wolfssl-${{ inputs.wolfssl_version }}.zip
+
+      - name: Unzip wolfSSL
+        run: unzip wolfssl-${{ inputs.wolfssl_version }}.zip
+
+      - name: Configure wolfSSL
+        working-directory: wolfssl-${{ inputs.wolfssl_version }}
+        run: ./configure ${{ inputs.wolfssl_configure }} --prefix=$GITHUB_WORKSPACE/build-dir
+
+      - name: Make wolfSSL
+        working-directory: wolfssl-${{ inputs.wolfssl_version }}
+        run: make -j
+
+      - name: Install wolfSSL
+        working-directory: wolfssl-${{ inputs.wolfssl_version }}
+        run: make install
 
       - name: Setup java
         uses: actions/setup-java@v4
