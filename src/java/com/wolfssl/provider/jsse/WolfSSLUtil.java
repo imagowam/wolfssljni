@@ -85,12 +85,12 @@ public class WolfSSLUtil {
         /* Force remove DTLS from supported JSSE protocols. Currently only
          * JNI layer supports DTLS, not JSSE. When JSSE layer gets DTLS
          * support added, take this restriction out. */
-        if (disabledAlgos == null) {
-            disabledAlgos = "DTLSv1.2, DTLSv1.3";
-        }
-        else {
-            disabledAlgos += ",DTLSv1.2,DTLSv1.3";
-        }
+//        if (disabledAlgos == null) {
+//            disabledAlgos = "DTLSv1.2, DTLSv1.3";
+//        }
+//        else {
+//            disabledAlgos += ",DTLSv1.2,DTLSv1.3";
+//        }
 
         /* Remove spaces after commas, split into List */
         disabledAlgos = disabledAlgos.replaceAll(", ",",");

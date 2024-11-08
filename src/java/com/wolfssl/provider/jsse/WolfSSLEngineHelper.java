@@ -524,6 +524,11 @@ public class WolfSSLEngineHelper {
 
         /* sanitize protocol array for unsupported strings */
         List<String> supported = Arrays.asList(getAllProtocols());
+
+	for (int i = 0; i < supported.size(); i++) {
+		System.out.println(supported.get(i));
+	}
+
         for (int i = 0; i < p.length; i++) {
             if (!supported.contains(p[i])) {
                 throw new IllegalArgumentException("Unsupported protocol: " +
